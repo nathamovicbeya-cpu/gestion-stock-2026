@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produit laitier - Gestion de Stock</title>
+    <style>
+        /* CSS : Design de l'application */
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--light); margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 90%; max-width: 900px; }
+        
+        /* Formulaires */
+        .hidden { display: none; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--light); margin-bottom: 1.5rem; padding-bottom: 1rem; }
+        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 10px 20px; font-weight: bold; transition: 0.3s; }
+        .btn-login { background: var(--primary); color: white; width: 100%; }
+        .btn-add { background: var(--success); color: white; }
+        .btn-logout { background: #ef4444; color: white; padding: 5px 10px; }
+
+        /* Tableau de bord */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #edf2f7; }
+        th { background: var(--light); color: var(--dark); }
+        tr:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <!-- 1. SECTION CONNEXION -->
+    <div id="login-block" class="container">
+        <h2 style="text-align: center; color: var(--dark);">Connexion Entreprise</h2>
+        <p style="text-align: center; color: #64748b;">Entrez vos identifiants pour gérer les stocks</p>
+        <input type="text" id="user" placeholder="Utilisateur (ex: admin)">
+        <input type="password" id="pass" placeholder="Mot de passe (ex: 1234)">
+        <button class="btn-login" onclick="handleLogin()">Se connecter</button>
+        <p id="error-msg" style="color: red; display: none; text-align: center;">Accès refusé !</p>
+    </div>
+
+    <!-- 2. SECTION GESTION (Tableau de Bord) -->
+    <div id="app-block" class="container hidden">
+        <header>
+            <h2 style="margin:0;">📦 StockMaster <small style="font-weight: normal; font-size: 0.8rem;">v2026.1</small></h2>
+            <button class="btn-logout" onclick="logout()">Déconnexion</button>
+        </header>
+
+        <div class="dashboard-grid">
+            <!-- Formulaire d'ajout -->
+            <section>
+                <h3>Ajouter un produit</h3>
+                <input type="text" id="p-name" placeholder="Nom du produit">
+                <input type="number" id="p-qty" placeholder="Quantité">
+                <textarea id="p-desc" placeholder="Détails/Emplacement"></textarea>
+                <button class="btn-add" onclick="saveProduct()">Enregistrer en stock</button>
+            </section>
+
+            <!-- Affichage des stocks -->
+            <section>
+                <h3>État des Stocks</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Qté</th>
+                            <th>Détails</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-table">
+                        <!-- Rempli par JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIQUE JAVASCRIPT ---
+
+        // Sécurité : Vérifier si déjà connecté au chargement (Janvier 2026)
+        window.onload = () => {
+            if(sessionStorage.getItem('auth') === 'true') showApp();
+        };
+
+        function handleLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+
+            // Simple vérification (admin / 1234)
+            if(u === "admin" && p === "1234") {
+                sessionStorage.setItem('auth', 'true');
+                showApp();
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+            }
+        }
+
+        function showApp() {
+            document.getElementById('login-block').classList.add('hidden');
+            document.getElementById('app-block').classList.remove('hidden');
+            renderTable();
+        }
+
+        function saveProduct() {
+            const name = document.getElementById('p-name').value;
+            const qty = document.getElementById('p-qty').value;
+            const desc = document.getElementById('p-desc').value;
+
+            if(!name || !qty) return alert("Veuillez remplir le nom et la quantité.");
+
+            const product = { name, qty, desc };
+
+            // Récupérer les stocks existants dans le localStorage
+            let stocks = JSON.parse(localStorage.getItem('my_stocks')) || [];
+            stocks.push(product);
+            
+            // Sauvegarder
+            localStorage.setItem('my_stocks', JSON.stringify(stocks));
+            
+            // Réinitialiser les champs et mettre à jour le tableau
+            document.getElementById('p-name').value = '';
+            document.getElementById('p-qty').value = '';
+            document.getElementById('p-desc').value = '';
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('inventory-table');
+            const stocks = JSON.parse(localStorage.getItem('my_stocks')) || [];
+            
+            tbody.innerHTML = stocks.map(p => `
+                <tr>
+                    <td><strong>${p.name}</strong></td>
+                    <td>${p.qty}</td>
+                    <td><small>${p.desc}</small></td>
+                </tr>
+            `).join('');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('auth');
+            location.reload();
+        }
+    </script>
+</body>
+</html>
